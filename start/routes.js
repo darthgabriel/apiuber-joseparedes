@@ -16,71 +16,72 @@
 /** @type {typeof import('@adonisjs/framework/src/Route/Manager')} */
 const Route = use('Route');
 
-//consltador de api
-const fetch = require('node-fetch');
-//alojo en memoria las 
-global.Uber = {
-  client_id: "y7NNIU7zFuQDmN-K-w7OPyQCIB7SFXdw",
-  client_secret: "-j87-JiZcMXD_obzPg_A-SMOUTwMyV8HbYf7JGEb",
-  uri: 'http://127.0.0.1:4000/api/uri',
-  scope: 'offline_access',
-  conectado: 0,
-  token_cliente: '', //se llena el token despues del login, el token dura 10minutos segun la documentacion
-  access_token: '', //se cambia el token anterior por un access token para los request
-  redireccion: '',
-}
+Route.get('/', () => {
+  return { greeting: 'Api Uber => apiuber/v1' }
+});
+
+// Grouped
+Route.group(() => {
+
+  Route.get('/', () => {
+    return { greeting: 'Hello you are inside api-uber' }
+  });
+
+  //login => return token Bearer
+  Route.get('/login/', 'UberController.login');
+  //find_store require place_id (in variables) google => return json with info 
+  Route.get('/find_store/', 'UberController.find_store');
+  //estimate_deleviry => require lat, lon, formated adress to dorpoff => return json with estimate and estimate id to create delivery
+  Route.post('/estimate_delivery/', 'UberController.estimate_delivery');
+  //create_delivery => require json
+  /*{
+    "currency_code": "CLP",
+      "dropoff": {
+      "address": {
+        "location": {
+          "latitude": -33.4577472, <- latitude from estimate
+            "longitude": -70.6046975 <- longitude from estimate
+        }
+      },
+      "formatted_address": "JOSE DOMINGO CAÑAS 2809 ÑUÑOA", <- formated adress form estimate
+        "contact": {
+        "email": "test.email@gmail.com",
+          "first_name": "Test",
+            "last_name": "E",
+              "phone": "+17037276834"
+      },
+      "instructions": null
+    },
+    "estimate_id": "9b8ca947-d2ec-424f-adc7-730372741940", <- from estimate
+      "external_order_id": "516062",
+        "external_user_id": "2532",
+          "order_items": [
+            {
+              "name": "Bacon Egg & Cheese Biscuit",
+              "quantity": 1
+            }
+          ],
+            "order_value": 1,
+              "pickup": {
+      "external_store_id": "273",
+        "instructions": "Pickup order via Front-Counter or Drive-Thru - select the faster option. If the lobby is closed (late night), please pickup order via Drive-Thru. After collecting the order from McDonald's, please do not break open the sticker seal.",
+          "store_id": "f20ff1b6-cc1e-4911-90a9-fffac1d8447d" <- from find store
+    },
+    "pickup_at": 0
+  }
+  
+  return => json with order id*/
+  Route.post('/create_delivery/', 'UberController.create_delivery');
+  //status_delivery => require order_id => return status order
+  Route.post('/status_delivery/', 'UberController.status_delivery');
+  //cancel_delivery => post form with order_id / return => empty json it is OK
+  Route.post('/cancel_delivery/', 'UberController.cancel_delivery');
+
+}).prefix('apiuber/v1')
+
 
 
 Route.group(() => {
-  Route.get('/login', async ({ response, request }) => {
-    let url = `https://login.uber.com/oauth/v2/authorize?client_id=${global.Uber.client_id}&response_type=code&scope=${global.Uber.scope}&redirect_uri=${global.Uber.uri}`;
-    response.redirect(url);
-  });
-
-  Route.get('/uri/', async ({ response, request }) => {
-    global.Uber.token_cliente = await request._all.code;
-    //obteniendo el berer token o token de consultas
-    /* CURL API
-   curl -F 'client_secret=<CLIENT_SECRET>' \
-    -F 'client_id=<CLIENT_ID>' \
-    -F 'grant_type=authorization_code' \
-    -F 'redirect_uri=<REDIRECT_URI>' \
-    -F 'scope=profile' \
-    -F 'code=<AUTHORIZATION_CODE>' \
-    https://login.uber.com/oauth/v2/token
-    */
-    let params = new URLSearchParams();
-    params.append("client_secret", global.Uber.client_secret);
-    params.append("client_id", global.Uber.client_id);
-    params.append("grant_type", "authorization_code");
-    params.append("redirect_uri", global.Uber.uri);
-    params.append("scope", global.Uber.scope);
-    params.append("code", global.Uber.token_cliente);
-    await fetch('https://login.uber.com/oauth/v2/token', {
-      method: 'post',
-      body: params,
-      "Content-Type": "application/x-www-form-urlencoded",
-    })
-      .then(res => res.json())
-      .then(json => {
-        //cargando a las globals
-        global.Uber.conectado = 1;
-        global.Uber.access_token = json.access_token;
-      });
-    response.redirect(`/api/${global.Uber.redireccion}`);
-  });
-
-  Route.get('/check_connection/', async ({ response, request }) => {
-    if (global.Uber.conectado == 0) {
-      global.Uber.redireccion = "check_connection";
-      response.redirect('/api/login');
-    } else {
-      global.Uber.redireccion = "";
-      response.send(global.Uber)
-    }
-  });
-
-
 
   Route.get('/profile', async ({ response, request, params }) => {
     if (global.Uber.conectado == 0) {
@@ -88,23 +89,23 @@ Route.group(() => {
       response.redirect('/api/login');
     } else {
       global.Uber.redireccion = "";
-    /* consulta CURL
-    curl -H 'Authorization: Bearer <TOKEN>' \
-     -H 'Accept-Language: en_US' \
-     -H 'Content-Type: application/json' \
-     'https://api.uber.com/v1.2/me'    
-    */
-    await fetch('https://api.uber.com/v1.2/me', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${global.Uber.access_token}`,
-        'Accept-Language': 'en_US',
-        'Content-Type': 'application/json'
-      },
-    })
-      .then(res => res.json())
-      .then(json => console.log(json));
-  }
+      /* consulta CURL
+      curl -H 'Authorization: Bearer <TOKEN>' \
+       -H 'Accept-Language: en_US' \
+       -H 'Content-Type: application/json' \
+       'https://api.uber.com/v1.2/me'    
+      */
+      await fetch('https://api.uber.com/v1.2/me', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${global.Uber.access_token}`,
+          'Accept-Language': 'en_US',
+          'Content-Type': 'application/json'
+        },
+      })
+        .then(res => res.json())
+        .then(json => console.log(json));
+    }
   });
 
 
