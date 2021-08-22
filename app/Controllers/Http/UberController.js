@@ -1,24 +1,5 @@
 'use strict'
 
-
-/*
-    Routes:
-
-  //login => return token Bearer
-  Route.get('/login/', 'UberController.login');
-  //find_store require place_id google that parameter => return json with info 
-  Route.get('/find_store/', 'UberController.find_store');
-  //estimate_deleviry => require lat, lon, formated adress to dorpoff => return json with estimate and estimate id to create delivery
-  Route.post('/estimate_delivery/', 'UberController.estimate_delivery');
-  //create_delivery => requiere json
-  Route.post('/create_delivery/', 'UberController.create_delivery');
-  //status_delivery => require order_id => return status order
-  Route.get('/status_delivery/', 'UberController.status_delivery');
-  //cancel_delivery => require order_id => return OK
-  Route.get('/cancel_delivery/', 'UberController.cancel_delivery');
-*/
-
-
 //requiere install npm i node-fetch to api
 const fetch = require('node-fetch');
 //alojo en memoria las 
